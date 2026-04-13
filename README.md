@@ -113,13 +113,6 @@ python app.py
 
 ---
 
-## 🛠️ Development Tools
-Git: Version control system for team collaboration, code management, and conflict resolution.
-Postman: API testing tool for quickly verifying endpoints and detecting issues early.
-Docker: Ensures consistent development and deployment environments, minimizing system-related issues.
-Visual Studio Code / PyCharm: Powerful IDEs with strong support for Python development.
-
----
 ## 📂 Cấu trúc thư mục
 
 ```
