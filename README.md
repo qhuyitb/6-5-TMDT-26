@@ -201,11 +201,11 @@ git push origin feature/<ten-chuc-nang>
 ---
 
 ## 👥 Thành viên nhóm
-- Tô Quang Huy
-- Doãn Đức Nghĩa
-- Ngô Bá Đạt
-- Phạm Thanh Bình
-- Mai Xuân Nhân
+
+* Thành viên 1: Tô Quang Huy
+* Thành viên 2: Doãn Đức Nghĩa
+* Thành viên 3: Ngô Bá Đạt
+* Thành viên 4: Mai Xuân Nhân
 
 ---
 
