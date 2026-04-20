@@ -16,6 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.views.generic import TemplateView
 
 from django.conf import settings
 from django.conf.urls.static import static
@@ -23,6 +24,7 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('login/', TemplateView.as_view(template_name='pages/login/login.html'), name='login'),
     path('api/auth/', include('apps.users.urls')),
     path('api/', include('apps.products.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
