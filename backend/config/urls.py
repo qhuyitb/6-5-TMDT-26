@@ -24,7 +24,10 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('login/', TemplateView.as_view(template_name='pages/login/login.html'), name='login'),
+    path('login/', TemplateView.as_view(template_name='pages/login/login.html'), name='login_page'),
+    path('products/', TemplateView.as_view(template_name='pages/products/products.html'), name='products_page'),
+    path('shop/', TemplateView.as_view(template_name='pages/shop/shop.html'), name='shop_page'),
+    path('cart/', TemplateView.as_view(template_name='pages/cart/cart.html'), name='cart_page'),
     path('api/auth/', include('apps.users.urls')),
     path('api/', include('apps.products.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
