@@ -1,0 +1,297 @@
+{% extends 'pages/login/base.html' %}
+{% load static %}
+
+{% block title %}Cua hang - TechShop{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'login.css' %}">
+<style>
+    .shop-shell {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 0 24px;
+    }
+
+    .shop-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .shop-title {
+        font-size: 1.55rem;
+        font-weight: 800;
+        color: var(--text-dark);
+    }
+
+    .cart-summary {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text-mid);
+        font-weight: 600;
+    }
+
+    .product-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        gap: 18px;
+    }
+
+    .shop-card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        min-height: 100%;
+    }
+
+    .shop-thumb {
+        aspect-ratio: 4 / 3;
+        background: #eef0f5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-light);
+        font-size: 2rem;
+    }
+
+    .shop-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .shop-card-body {
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex: 1;
+    }
+
+    .product-name {
+        font-size: .98rem;
+        font-weight: 700;
+        line-height: 1.35;
+        color: var(--text-dark);
+    }
+
+    .product-meta {
+        font-size: .82rem;
+        color: var(--text-light);
+    }
+
+    .product-price {
+        margin-top: auto;
+        color: var(--primary);
+        font-size: 1.05rem;
+        font-weight: 800;
+    }
+
+    .add-cart-btn {
+        border: none;
+        border-radius: var(--radius);
+        padding: 11px 12px;
+        background: var(--primary);
+        color: var(--white);
+        font-weight: 700;
+        cursor: pointer;
+        transition: background var(--transition), transform var(--transition);
+    }
+
+    .add-cart-btn:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+    }
+
+    .add-cart-btn:disabled {
+        background: var(--text-light);
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .shop-message {
+        grid-column: 1 / -1;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
+        text-align: center;
+        color: var(--text-mid);
+    }
+
+    @media (max-width: 640px) {
+        .shop-toolbar {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="shop-shell">
+    <div class="shop-toolbar">
+        <h1 class="shop-title">San pham</h1>
+        <div class="cart-summary">
+            <span>Gio hang:</span>
+            <strong id="cartTotal">0 san pham</strong>
+        </div>
+    </div>
+
+    <div id="productGrid" class="product-grid">
+        <div class="shop-message">Dang tai san pham...</div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const SHOP_API_BASE = 'http://127.0.0.1:8000/api';
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadShopProducts();
+        loadCartSummary();
+    });
+
+    async function loadShopProducts() {
+        const grid = document.getElementById('productGrid');
+
+        try {
+            const res = await fetch(`${SHOP_API_BASE}/products/`);
+            if (!res.ok) throw new Error('Cannot load products');
+
+            const data = await res.json();
+            const products = data.results || data;
+            const activeProducts = products.filter(product => product.business_status === 'active');
+
+            if (!activeProducts.length) {
+                grid.innerHTML = '<div class="shop-message">Chua co san pham dang ban.</div>';
+                return;
+            }
+
+            renderProducts(activeProducts);
+        } catch (error) {
+            grid.innerHTML = '<div class="shop-message">Khong the tai san pham.</div>';
+        }
+    }
+
+    function renderProducts(products) {
+        const grid = document.getElementById('productGrid');
+        grid.innerHTML = products.map(product => renderProductCard(product)).join('');
+    }
+
+    function renderProductCard(product) {
+        const image = product.images && product.images.length
+            ? `<img src="${product.images[0].image_url}" alt="${escapeHtml(product.name)}">`
+            : '<span>Image</span>';
+        const disabled = product.stock_quantity <= 0 ? 'disabled' : '';
+        const buttonText = product.stock_quantity <= 0 ? 'Het hang' : 'Them vao gio';
+
+        return `
+            <article class="shop-card">
+                <div class="shop-thumb">${image}</div>
+                <div class="shop-card-body">
+                    <div class="product-name">${escapeHtml(product.name)}</div>
+                    <div class="product-meta">${escapeHtml(product.brand)} - Con ${product.stock_quantity}</div>
+                    <div class="product-price">${formatPrice(product.price)}</div>
+                    <button class="add-cart-btn" ${disabled} onclick="addToCart(${product.id})">
+                        ${buttonText}
+                    </button>
+                </div>
+            </article>
+        `;
+    }
+
+    async function addToCart(productId) {
+        const token = getAccessToken();
+        if (!token) {
+            alert('Ban can dang nhap de them san pham vao gio hang.');
+            window.location.href = '/login/';
+            return;
+        }
+
+        try {
+            const res = await fetch(`${SHOP_API_BASE}/auth/cart/items/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ product_id: productId, quantity: 1 })
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                alert(data.error || 'Khong the them san pham vao gio hang.');
+                return;
+            }
+
+            updateCartUi(data.total_quantity || 0);
+        } catch (error) {
+            alert('Khong the ket noi backend.');
+        }
+    }
+
+    async function loadCartSummary() {
+        const token = getAccessToken();
+        if (!token) {
+            updateCartUi(0);
+            return;
+        }
+
+        try {
+            const res = await fetch(`${SHOP_API_BASE}/auth/cart/`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) {
+                updateCartUi(0);
+                return;
+            }
+            const data = await res.json();
+            updateCartUi(data.total_quantity || 0);
+        } catch (error) {
+            updateCartUi(0);
+        }
+    }
+
+    function updateCartUi(totalQuantity) {
+        const cartTotal = document.getElementById('cartTotal');
+        const badge = document.querySelector('.header-actions .badge');
+
+        if (cartTotal) {
+            cartTotal.textContent = `${totalQuantity} san pham`;
+        }
+
+        if (badge) {
+            badge.textContent = totalQuantity;
+        }
+    }
+
+    function getAccessToken() {
+        return localStorage.getItem('access_token') || '';
+    }
+
+    function formatPrice(price) {
+        return new Intl.NumberFormat('vi-VN', {
+            style: 'currency',
+            currency: 'VND'
+        }).format(Number(price));
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+</script>
+{% endblock %}

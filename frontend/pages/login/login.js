@@ -106,3 +106,76 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 });
+
+const API_BASE = 'http://127.0.0.1:8000/api';
+
+const loginForm = document.getElementById('loginForm');
+if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const email = document.getElementById('login-username').value;
+        const password = document.getElementById('login-password').value;
+
+        const res = await fetch(`${API_BASE}/auth/login/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            localStorage.setItem('access_token', data.access_token);
+            localStorage.setItem('refresh_token', data.refresh_token);
+            if (data.user && data.user.role === 'admin') {
+                window.location.href = '/products/';
+            } else {
+                window.location.href = '/shop/';
+            }
+        } else {
+            alert('Đăng nhập thất bại');
+        }
+    });
+}
+const registerFormApi = document.getElementById('registerForm');
+
+if (registerFormApi) {
+    registerFormApi.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const fullName = document.getElementById('reg-full-name').value.trim();
+        const email = document.getElementById('reg-email').value.trim();
+        const phone = document.getElementById('reg-phone').value.trim();
+        const password1 = document.getElementById('reg-password').value;
+        const password2 = document.getElementById('reg-password2').value;
+
+        if (password1 !== password2) {
+            alert('Mật khẩu xác nhận không khớp.');
+            return;
+        }
+
+        const res = await fetch(`${API_BASE}/auth/register/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                full_name: fullName,
+                email: email,
+                phone: phone,
+                password: password1
+            })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            alert('Đăng ký thành công. Vui lòng đăng nhập.');
+            document.querySelector('[data-tab="login"]').click();
+        } else {
+            const message = Object.values(data).flat().join('\n');
+            alert(message || 'Đăng ký thất bại.');
+        }
+    });
+}
