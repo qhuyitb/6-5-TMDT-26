@@ -1,7 +1,7 @@
 import re
 from rest_framework import serializers
 from django.contrib.auth import authenticate
-from .models import User
+from .models import User, Cart, CartItem
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -78,3 +78,46 @@ class LoginSerializer(serializers.Serializer):
 
         data['user'] = user
         return data
+
+
+class CartItemSerializer(serializers.ModelSerializer):
+    product_id = serializers.IntegerField(source='product.id', read_only=True)
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    brand = serializers.CharField(source='product.brand', read_only=True)
+    price = serializers.DecimalField(source='product.price', max_digits=12, decimal_places=2, read_only=True)
+    image = serializers.SerializerMethodField()
+    line_total = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CartItem
+        fields = [
+            'id', 'product_id', 'product_name', 'brand', 'price',
+            'image', 'quantity', 'line_total'
+        ]
+
+    def get_image(self, obj):
+        image = obj.product.images.order_by('sort_order').first()
+        if not image:
+            return ''
+        request = self.context.get('request')
+        url = image.image_url.url
+        return request.build_absolute_uri(url) if request else url
+
+    def get_line_total(self, obj):
+        return obj.product.price * obj.quantity
+
+
+class CartSerializer(serializers.ModelSerializer):
+    items = CartItemSerializer(many=True, read_only=True)
+    total_quantity = serializers.SerializerMethodField()
+    total_price = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Cart
+        fields = ['id', 'items', 'total_quantity', 'total_price']
+
+    def get_total_quantity(self, obj):
+        return sum(item.quantity for item in obj.items.all())
+
+    def get_total_price(self, obj):
+        return sum(item.product.price * item.quantity for item in obj.items.all())
